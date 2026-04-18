@@ -43,6 +43,9 @@ private:
     Entity& entity;
     list<string> histo_ejecucion;
     map<string, Command> comandos;
+
+    //macro
+    map<string, list<pair<string, list<string> > > > macros;
 public:
     CommandCenter(Entity& entity) : entity(entity) {}
 
@@ -76,6 +79,33 @@ public:
         list <string>:: iterator a = histo_ejecucion.begin();
         for (; a != histo_ejecucion.end(); ++a) {
             cout << *a << "\n";
+        }
+    }
+
+    //macro
+    void registerMacro(const string& name, const list<pair<string, list<string> > >& steps) {
+        macros[name] = steps;
+    }
+
+    //macro
+    void executeMacro(const string& name) {
+        map<string, list<pair<string, list<string> > > >::iterator itMacro = macros.find(name);
+
+        if (itMacro == macros.end()) {
+            cout << "Macro no encontrado: " << name << "\n";
+            return;
+        }
+
+        list<pair<string, list<string> > >::iterator itPaso = itMacro->second.begin();
+        for (; itPaso != itMacro->second.end(); ++itPaso) {
+            map<string, Command>::iterator itCmd = comandos.find(itPaso->first);
+
+            if (itCmd == comandos.end()) {
+                cout << "Error en macro '" << name << "': comando no existe -> " << itPaso->first << "\n";
+                return;
+            }
+
+            ejecutarComando(itPaso->first, itPaso->second);
         }
     }
 };
@@ -164,6 +194,86 @@ int main() {
     // invalidos
     args.clear();
     center.ejecutarComando("heal", args);
+
+    //macro
+    list<pair<string, list<string> > > macro1;
+    list<string> m1a1;
+    m1a1.push_back("10");
+    macro1.push_back(make_pair("heal", m1a1));
+    list<string> m1a2;
+    macro1.push_back(make_pair("status", m1a2));
+    center.registerMacro("heal_status", macro1);
+
+    //macro
+    list<pair<string, list<string> > > macro2;
+    list<string> m2a1;
+    m2a1.push_back("2");
+    m2a1.push_back("3");
+    macro2.push_back(make_pair("move", m2a1));
+    list<string> m2a2;
+    m2a2.push_back("8");
+    macro2.push_back(make_pair("damage", m2a2));
+    center.registerMacro("move_damage", macro2);
+
+    //macro
+    list<pair<string, list<string> > > macro3;
+    list<string> m3a1;
+    m3a1.push_back("5");
+    macro3.push_back(make_pair("heal", m3a1));
+    list<string> m3a2;
+    m3a2.push_back("7");
+    macro3.push_back(make_pair("damage", m3a2));
+    list<string> m3a3;
+    macro3.push_back(make_pair("status", m3a3));
+    center.registerMacro("heal_damage_status", macro3);
+
+    //macro
+    list<pair<string, list<string> > > macro4;
+    list<string> m4a1;
+    macro4.push_back(make_pair("comando_fake", m4a1));
+    center.registerMacro("macro_error", macro4);
+
+    // validos
+    center.executeMacro("heal_status");
+    center.executeMacro("move_damage");
+    center.executeMacro("heal_damage_status");
+
+    // invalidos
+    center.executeMacro("macro_error");
+    center.executeMacro("macro_inexistente");
+
+    //validos extra
+    args.clear();
+    args.push_back("10");
+    center.ejecutarComando("heal", args);
+
+    //validos extra
+    args.clear();
+    args.push_back("1");
+    args.push_back("1");
+    center.ejecutarComando("move", args);
+
+    //validos extra
+    args.clear();
+    args.push_back("4");
+    center.ejecutarComando("damage", args);
+
+    //validos extra
+    args.clear();
+    center.ejecutarComando("status", args);
+
+    //validos extra
+    args.clear();
+    args.push_back("6");
+    center.ejecutarComando("damage", args);
+
+    //validos extra
+    args.clear();
+    center.ejecutarComando("status", args);
+
+    // estado final
+    args.clear();
+    center.ejecutarComando("status", args);
 
     // historial
     center.mostrarHistorial();
